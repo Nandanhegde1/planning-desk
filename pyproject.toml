@@ -1,0 +1,21 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "SIM", "C4", "UP", "RET", "PTH", "S", "A"]
+ignore = [
+    "S101",  # assert is the point of a test file
+    "S104",  # binding 0.0.0.0 is intended inside a container
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The MCP servers must extend sys.path before importing core, so their imports
+# cannot sit at the top of the file.
+"servers/*.py" = ["E402"]
+"scripts/*.py" = ["E402", "T201"]
+"tests/*.py" = ["E402", "ARG001"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

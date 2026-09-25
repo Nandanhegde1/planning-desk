@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planning desk</title>
+<!-- No third-party requests: the page renders under a strict CSP and inside a
+     network with no egress. The stack falls back through installed faces. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%235b3bd4'/%3E%3Crect x='4' y='7.25' width='8' height='1.5' rx='.75' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root {
+  --paper: #ffffff;
+  --veil: #f5f3fa;
+  --ink: #191627;
+  --muted: #6a6580;
+  --faint: #9a95ac;
+  --rule: #e6e2f0;
+  --iris: #5b3bd4;
+  --iris-veil: #ece7fb;
+  --clear: #2c6a52;
+  --caution: #9a6b1e;
+  --blocked: #a8384a;
+  --clear-veil: #e8f1ed;
+  --caution-veil: #f7f0df;
+  --blocked-veil: #f8eaec;
+  --sans: "Avenir Next LT Pro", "Avenir Next", Avenir, Mulish, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --column: 44rem;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 16px/1.65 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+}
+:focus-visible { outline: 2px solid var(--iris); outline-offset: 3px; border-radius: 3px; }
+
+/* ---- chrome ------------------------------------------------------------ */
+.masthead {
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  padding: 22px 32px;
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.wordmark { font: 800 17px/1 var(--sans); letter-spacing: -0.02em; margin: 0; }
+.wordmark em { font-style: normal; color: var(--iris); }
+.modes { display: flex; gap: 4px; }
+.modes button {
+  font: 500 13px/1 var(--sans);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 13px;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.modes button:hover { color: var(--ink); }
+.modes button[aria-current="true"] { background: var(--iris-veil); color: var(--iris); }
+
+.vitals {
+  font: 500 12px/1 var(--mono);
+  color: var(--faint);
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.vitals b { font-weight: 500; color: var(--muted); }
+.vitals .alarm { color: var(--blocked); }
+
+.restart {
+  font: 500 13px/1 var(--sans);
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 8px 13px;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.restart:hover { color: var(--iris); border-color: var(--iris); }
+.resumed { font: 400 13px/1.5 var(--sans); color: var(--faint); margin: 0 0 8px; }
+
+.scroll { flex: 1; overflow-y: auto; padding: 0 32px; }
+.column { max-width: var(--column); margin: 0 auto; padding: 56px 0 24px; }
+.column.empty { padding-top: 44px; }
+
+/* ---- opening -----------------------------------------------------------
+   A tool opening, not a landing page: what this does, then examples you can
+   click. No kicker, no claim headline, no card grid. */
+.opening { padding-bottom: 8px; max-width: 58ch; }
+.lede { font: 400 17px/1.6 var(--sans); margin: 0 0 8px; }
+.sub { font: 400 15px/1.6 var(--sans); color: var(--muted); margin: 0 0 34px; }
+.try { font: 500 13px/1 var(--sans); color: var(--faint); margin: 0 0 2px; }
+
+.prompts { display: flex; flex-direction: column; }
+.prompt {
+  font: 400 15px/1.5 var(--sans);
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  padding: 13px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  transition: color 140ms ease;
+}
+.prompt:last-child { border-bottom: 1px solid var(--rule); }
+.prompt .arrow { margin-left: auto; color: var(--rule); transition: color 140ms ease; }
+.prompt:hover, .prompt:hover .arrow { color: var(--iris); }
+
+/* ---- turns ------------------------------------------------------------- */
+.turn { padding: 40px 0; border-top: 1px solid var(--rule); }
+.turn:first-of-type { border-top: 0; }
+.asked {
+  font: 600 21px/1.4 var(--sans);
+  letter-spacing: -0.015em;
+  margin: 0 0 38px;
+}
+
+.working { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 400 14px/1 var(--sans); }
+.pip { width: 6px; height: 6px; border-radius: 50%; background: var(--iris); animation: breathe 1.4s ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+.reply { font-size: 16px; }
+.reply p { margin: 0 0 14px; }
+.reply p:last-child { margin-bottom: 0; }
+.reply code { font: 14px var(--mono); background: var(--veil); padding: 2px 5px; border-radius: 4px; }
+
+/* ---- verdict: the signature ------------------------------------------- */
+.verdict { margin: 0 0 30px; }
+.ruling { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+.ruling h2 {
+  font: 800 32px/1 var(--sans);
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.ruling .score { font: 500 12px/1 var(--mono); color: var(--faint); }
+.ruling.go h2 { color: var(--clear); }
+.ruling.caution h2 { color: var(--caution); }
+.ruling.no_go h2 { color: var(--blocked); }
+.whereabouts { font: 400 14px/1.5 var(--sans); color: var(--muted); margin: 0 0 26px; }
+
+.gauges { display: flex; flex-direction: column; gap: 22px; }
+.gauge-label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font: 400 14px/1.4 var(--sans);
+  margin-bottom: 9px;
+}
+.gauge-label .what { font-weight: 600; }
+.gauge-label .reading { margin-left: auto; font: 500 13px/1 var(--mono); }
+.gauge-label .limit { font: 400 11px/1 var(--mono); color: var(--faint); }
+.blocker .reading { color: var(--blocked); }
+.caution .reading { color: var(--caution); }
+
+.track { position: relative; height: 2px; background: var(--rule); border-radius: 2px; }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; width: 0; transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1); }
+.blocker .fill { background: var(--blocked); }
+.caution .fill { background: var(--caution); }
+.note .fill { background: var(--clear); }
+.limit-tick {
+  position: absolute;
+  top: -5px;
+  width: 1px;
+  height: 12px;
+  background: var(--faint);
+}
+.limit-tick::after {
+  content: attr(data-label);
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font: 400 10px/1 var(--mono);
+  color: var(--faint);
+  white-space: nowrap;
+}
+.gauge { padding-bottom: 20px; }
+.gauge:last-child { padding-bottom: 0; }
+.gauge.plain { padding-bottom: 0; }
+.gauge.plain .detail { font: 400 14px/1.5 var(--sans); color: var(--muted); margin: 0; }
+
+/* daylight band */
+.daylight { margin: 26px 0 0; }
+.daylight .strip {
+  position: relative;
+  height: 26px;
+  border-radius: 6px;
+  background: #22203a;
+  overflow: hidden;
+}
+.daylight .sun { position: absolute; top: 0; bottom: 0; background: #f2e3b8; }
+.daylight .slot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(91, 59, 212, 0.62);
+  border-left: 2px solid var(--iris);
+  border-right: 2px solid var(--iris);
+}
+.daylight .marks {
+  display: flex;
+  justify-content: space-between;
+  font: 400 10px/1 var(--mono);
+  color: var(--faint);
+  margin-top: 7px;
+}
+.daylight .caption { font: 400 14px/1.5 var(--sans); color: var(--muted); margin: 12px 0 0; }
+.daylight .key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--iris); margin-right: 7px; }
+
+/* ---- day strip, windows, places ---------------------------------------- */
+.days { display: flex; gap: 4px; margin: 0 0 24px; flex-wrap: wrap; }
+.day {
+  flex: 1 1 52px;
+  border-radius: 7px;
+  padding: 11px 6px;
+  text-align: center;
+  font: 500 11px/1.5 var(--mono);
+}
+.day.go { background: var(--clear-veil); color: var(--clear); }
+.day.caution { background: var(--caution-veil); color: var(--caution); }
+.day.no_go { background: var(--blocked-veil); color: var(--blocked); }
+.day b { display: block; font: 600 13px/1.3 var(--sans); }
+
+.panel-title {
+  font: 600 11px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 30px 0 12px;
+}
+.rows { margin: 0 0 24px; }
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 13px 0;
+  border-top: 1px solid var(--rule);
+  font-size: 15px;
+}
+.row:last-child { border-bottom: 1px solid var(--rule); }
+.row .lead { font-weight: 600; }
+.row .trail { margin-left: auto; font: 500 12px/1 var(--mono); color: var(--muted); }
+.row .aside { font: 400 13px/1 var(--sans); color: var(--faint); }
+
+/* ---- artefacts --------------------------------------------------------- */
+.figures { width: 100%; border-collapse: collapse; margin: 0 0 24px; }
+.figures th {
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  text-align: right;
+  padding: 0 0 10px;
+  font-weight: 600;
+}
+.figures th:first-child { text-align: left; }
+.figures td {
+  font: 500 14px/1 var(--mono);
+  text-align: right;
+  padding: 13px 0;
+  border-top: 1px solid var(--rule);
+}
+.figures td:first-child { font: 600 15px/1 var(--sans); text-align: left; }
+.figures tr:last-child td { border-bottom: 1px solid var(--rule); }
+.figures .weak { color: var(--faint); }
+.provenance { font: 400 13px/1.5 var(--sans); color: var(--faint); margin: -12px 0 24px; }
+
+.artefacts { display: flex; flex-direction: column; gap: 14px; margin-top: 26px; }
+.plate { width: 100%; display: block; border-radius: 12px; border: 1px solid var(--rule); }
+.grab {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--veil);
+  border-radius: 12px;
+  padding: 15px 18px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 15px;
+  transition: background 140ms ease;
+}
+.grab:hover { background: var(--iris-veil); }
+.grab .ext {
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--iris);
+}
+.grab .go { margin-left: auto; color: var(--faint); font: 400 13px/1 var(--sans); }
+
+/* ---- trace ------------------------------------------------------------- */
+.trace { margin-top: 26px; }
+.trace summary {
+  font: 500 12px/1 var(--mono);
+  color: var(--faint);
+  cursor: pointer;
+  list-style: none;
+  padding: 7px 0;
+}
+.trace summary::-webkit-details-marker { display: none; }
+.trace summary:hover { color: var(--iris); }
+.rail { border-left: 1px solid var(--rule); padding-left: 18px; margin-top: 10px; }
+.call { padding: 6px 0; }
+.call-line { display: flex; gap: 12px; align-items: baseline; font: 400 12px/1.5 var(--mono); }
+.call-line .srv { color: var(--iris); }
+.call-line .fn { color: var(--muted); }
+.call-line .ms { margin-left: auto; color: var(--faint); }
+.call.failed .fn { color: var(--blocked); }
+.payload {
+  font: 400 11px/1.55 var(--mono);
+  color: var(--muted);
+  background: var(--veil);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow: auto;
+}
+.tally { font: 400 12px/1 var(--mono); color: var(--faint); margin-top: 18px; }
+.snag {
+  font-size: 15px;
+  color: var(--blocked);
+  background: var(--blocked-veil);
+  border-radius: 10px;
+  padding: 13px 16px;
+  margin-top: 14px;
+}
+
+/* ---- composer ---------------------------------------------------------- */
+.composer-shell { border-top: 1px solid var(--rule); padding: 18px 32px 26px; background: var(--paper); }
+.composer { max-width: var(--column); margin: 0 auto; display: flex; gap: 12px; align-items: flex-end; }
+textarea {
+  flex: 1;
+  font: 400 16px/1.55 var(--sans);
+  color: var(--ink);
+  background: var(--veil);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 15px 18px;
+  resize: none;
+  min-height: 54px;
+  max-height: 190px;
+}
+textarea::placeholder { color: var(--faint); }
+textarea:focus { outline: none; border-color: var(--iris); background: var(--paper); }
+.send {
+  font: 600 15px/1 var(--sans);
+  background: var(--ink);
+  color: var(--paper);
+  border: 0;
+  border-radius: 14px;
+  padding: 18px 26px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.send:hover:not(:disabled) { background: var(--iris); }
+.send:disabled { background: var(--faint); cursor: default; }
+.send.stopping { background: var(--blocked); }
+.send.stopping:hover { background: var(--blocked); opacity: 0.88; }
+
+.again {
+  font: 500 13px/1 var(--sans);
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 9px 14px;
+  margin-top: 14px;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.again:hover { color: var(--iris); border-color: var(--iris); }
+
+/* Switching mode mid-conversation changes the tools without clearing the
+   transcript, so the transcript says so. */
+.switched {
+  font: 400 13px/1.5 var(--sans);
+  color: var(--faint);
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+  margin: 24px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pip { animation: none; opacity: 0.65; }
+  .fill { transition: none; }
+}
+@media (max-width: 640px) {
+  .masthead, .scroll, .composer-shell { padding-left: 20px; padding-right: 20px; }
+  .column { padding-top: 40px; }
+  .column.empty { padding-top: 28px; }
+  .prompt .arrow { display: none; }
+  .ruling h2 { font-size: 26px; }
+  .call-line .ms { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <h1 class="wordmark">planning<em>·</em>desk</h1>
+  <nav class="modes" id="modes" aria-label="Mode"></nav>
+  <div class="vitals" id="vitals">connecting</div>
+  <button class="restart" id="restart" hidden>New conversation</button>
+</header>
+
+<div class="scroll"><div class="column empty" id="log">
+  <section class="opening" id="opening">
+    <p class="lede"></p>
+    <p class="sub"></p>
+    <p class="try">Examples</p>
+    <div class="prompts" id="prompts"></div>
+  </section>
+</div></div>
+
+<div class="composer-shell"><div class="composer">
+  <textarea id="input" rows="1" placeholder="A match, a trip, or a rate" aria-label="Your question"></textarea>
+  <button class="send" id="send">Ask</button>
+</div></div>
+
+<script>
+const log = document.getElementById('log');
+const opening = document.getElementById('opening');
+const input = document.getElementById('input');
+const send = document.getElementById('send');
+const vitals = document.getElementById('vitals');
+const restart = document.getElementById('restart');
+/* The session id is the one piece of state the browser keeps. Without it a
+   reload started a new conversation while the server still held the old one,
+   which reads as the chat having forgotten everything. */
+const STORE_KEY = 'planning-desk-session';
+const MODE_KEY = 'planning-desk-mode';
+let sessionId = sessionStorage.getItem(STORE_KEY) || null;
+let busy = false;
+/* The in-flight turn, so the Ask button can become a Stop button. Aborting the
+   fetch ends the SSE stream, and the server's generator is cancelled with it. */
+let inFlight = null;
+
+function offerRetry(turn, message) {
+  // One per turn. An error event and the stream ending both route here, so a
+  // single failure was stacking two identical buttons.
+  if (turn.querySelector('.again')) return;
+  const again = el('button', 'again', 'Try again');
+  again.onclick = () => {
+    again.remove();
+    input.value = message;
+    submit();
+  };
+  turn.appendChild(again);
+}
+
+function rememberSession(id) {
+  sessionId = id;
+  try { sessionStorage.setItem(STORE_KEY, id); } catch { /* private mode */ }
+  restart.hidden = false;
+}
+
+function rememberMode(name) {
+  mode = name;
+  try { sessionStorage.setItem(MODE_KEY, name); } catch { /* private mode */ }
+  history.replaceState({}, '', `?mode=${name}`);
+}
+
+const MODE_COPY = {
+  planning: {
+    lede: 'Ask whether a plan works at a specific place and time.',
+    sub: 'Forecast, air quality and daylight for that window are measured against a fixed threshold policy. Every verdict shows which reading crossed which line.',
+    placeholder: 'A match or a trip',
+    prompts: [
+      'Is a football match at Cubbon Park, Bengaluru workable this Saturday 5\u20138pm? No floodlights.',
+      'Is badminton indoors in Bengaluru feasible on Sunday 7\u20139pm?',
+      'I want four days in Munnar from next Friday. Is that feasible, and where else could I go?',
+      'Where can I go in December on \u20b95,000 a day, near the coast?'
+    ]
+  },
+  currency: {
+    lede: 'Build a currency series you can open in Excel and check.',
+    sub: 'European Central Bank reference rates, reindexed onto a real calendar. Workbooks ship live formulas rather than frozen numbers, so the trend moves if you edit the data.',
+    placeholder: 'A currency pair or a chart',
+    prompts: [
+      'Build me a two-year USD to INR spreadsheet with a trendline.',
+      'Compare USD/INR against INR/GBP and INR/EUR over two years on one chart.',
+      'Show that as a monthly bar chart instead.',
+      'Put the whole comparison into a Word document.'
+    ]
+  },
+  all: {
+    lede: 'Plans and currency series in one conversation.',
+    sub: 'Both tool sets are available, on the same host and the same agent loop.',
+    placeholder: 'A match, a trip, or a rate',
+    prompts: [
+      'Is a football match at Cubbon Park, Bengaluru workable this Saturday 5\u20138pm? No floodlights.',
+      'Where can I go in December on \u20b95,000 a day, near the coast?',
+      'Compare USD/INR against INR/GBP and INR/EUR over two years.',
+      'Put that comparison into a Word document.'
+    ]
+  }
+};
+
+/* The mode has to be restored alongside the session, not only from the URL. A
+   reload of a bare URL used to resume a currency conversation with the planning
+   tool set selected, so the next message could not reach the fx tools at all.
+   An explicit ?mode= still wins, so a shared link opens where it points. */
+let mode = new URLSearchParams(location.search).get('mode')
+  || sessionStorage.getItem(MODE_KEY)
+  || 'planning';
+if (!MODE_COPY[mode]) mode = 'planning';
+rememberMode(mode);
+
+const UNITS = {
+  precip_probability_pct: '%', precipitation_mm_per_h: ' mm/h', wind_gusts_kmh: ' km/h',
+  apparent_temp_c_high: '\u00b0C', apparent_temp_c_low: '\u00b0C', pm2_5_ug_m3: ' \u00b5g/m\u00b3', uv_index: ''
+};
+const NAMES = {
+  precip_probability_pct: 'Chance of rain', precipitation_mm_per_h: 'Rainfall',
+  wind_gusts_kmh: 'Wind gusts', apparent_temp_c_high: 'Feels like', apparent_temp_c_low: 'Feels like',
+  pm2_5_ug_m3: 'PM2.5', uv_index: 'UV index', after_sunset: 'Daylight',
+  near_sunset: 'Daylight', beyond_forecast_range: 'Data source', clear: 'All readings', no_data: 'Readings'
+};
+const RULING = { go: 'Go', caution: 'Go with care', no_go: 'Not workable' };
+
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+const scroll = () => document.querySelector('.scroll').scrollTo({ top: 1e9, behavior: 'smooth' });
+const num = (v, code) => (Number.isInteger(v) ? v : Number(v).toFixed(1)) + (UNITS[code] ?? '');
+
+function paintOpening() {
+  const copy = MODE_COPY[mode];
+  // The placeholder belongs to the composer, which is on screen in both states,
+  // so it is updated whether or not the opening is still showing.
+  input.placeholder = copy.placeholder;
+  if (!opening.isConnected) return;
+
+  document.querySelector('.lede').textContent = copy.lede;
+  document.querySelector('.sub').textContent = copy.sub;
+
+  const shelf = document.getElementById('prompts');
+  shelf.textContent = '';
+  copy.prompts.forEach(text => {
+    const b = el('button', 'prompt');
+    b.appendChild(el('span', null, text));
+    b.appendChild(el('span', 'arrow', '→'));
+    b.onclick = () => { input.value = text; input.focus(); resize(); };
+    shelf.appendChild(b);
+  });
+}
+
+function paintModes(available) {
+  const nav = document.getElementById('modes');
+  nav.textContent = '';
+  available.forEach(([name, spec]) => {
+    const b = el('button', null, spec.label);
+    b.setAttribute('aria-current', String(name === mode));
+    b.onclick = () => {
+      if (name === mode) return;
+      /* Switching mode narrows which tools the next message may use. The
+         conversation is deliberately kept: silently dropping it here was
+         indistinguishable from the chat losing its memory. Use New
+         conversation to start over. */
+      const label = spec.label;
+      rememberMode(name);
+      paintOpening();
+      paintVitals();
+      paintModes(available);
+      // Say it in the transcript rather than silently changing what is available.
+      if (log.querySelector('.turn')) {
+        log.appendChild(el('p', 'switched',
+          `Switched to ${label}. The conversation is kept, and the next question uses the ${label} tools.`));
+        scroll();
+      }
+    };
+    nav.appendChild(b);
+  });
+}
+
+paintOpening();
+
+/* ---------- resuming a conversation after a reload ---------------------- */
+function renderReply(text) {
+  const reply = el('div', 'reply');
+  text.split(/\n{2,}/).forEach(para => {
+    const p = el('p');
+    p.innerHTML = para
+      .replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    reply.appendChild(p);
+  });
+  return reply;
+}
+
+function newConversation() {
+  const previous = sessionId;
+  sessionId = null;
+  sessionStorage.removeItem(STORE_KEY);
+  restart.hidden = true;
+  log.textContent = '';
+  log.classList.add('empty');
+  log.appendChild(opening);
+  paintOpening();
+  input.focus();
+  if (previous) {
+    fetch('/api/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: previous })
+    }).catch(() => { /* the server expires it on its own soon enough */ });
+  }
+}
+restart.onclick = newConversation;
+
+async function resume() {
+  if (!sessionId) return;
+  let payload;
+  try {
+    const response = await fetch(`/api/session/${encodeURIComponent(sessionId)}`);
+    if (!response.ok) throw new Error(String(response.status));
+    payload = await response.json();
+  } catch {
+    // The process restarted, or the session expired. Start clean.
+    sessionId = null;
+    sessionStorage.removeItem(STORE_KEY);
+    return;
+  }
+  if (!payload.turns?.length) { restart.hidden = false; return; }
+
+  opening.remove();
+  log.classList.remove('empty');
+  log.appendChild(el('p', 'resumed', 'Continuing where you left off.'));
+  payload.turns.forEach(turn => {
+    if (turn.role === 'user') {
+      const article = el('article', 'turn');
+      article.appendChild(el('h3', 'asked', turn.text));
+      log.appendChild(article);
+    } else {
+      const last = log.querySelector('.turn:last-of-type') || log.appendChild(el('article', 'turn'));
+      last.appendChild(renderReply(turn.text));
+    }
+  });
+  restart.hidden = false;
+}
+resume();
+
+/* Kept so the strip can be repainted when the mode changes: the tool count is
+   per mode, and a figure that never moved made all three modes look identical. */
+let health = null;
+
+function paintVitals() {
+  if (!health) return;
+  const here = health.modes?.[mode]?.tools ?? health.tool_count;
+  /* Built as nodes rather than interpolated into innerHTML. These values come
+     from configuration rather than from a user, but the page's CSP allows inline
+     script, so an unescaped deployment name is a needless edge to leave. */
+  vitals.textContent = '';
+  const strong = (text) => { const b = el('b', null, String(text)); const s = el('span'); s.appendChild(b); return s; };
+  vitals.appendChild(strong(health.model || health.provider));
+  const count = el('span');
+  count.appendChild(el('b', null, String(here)));
+  count.appendChild(document.createTextNode(' tools'));
+  vitals.appendChild(count);
+  if (!health.provider_ready) vitals.appendChild(el('span', 'alarm', String(health.hint ?? '')));
+  if (health.notice) vitals.appendChild(el('span', null, String(health.notice)));
+  const down = Object.keys(health.mcp?.failed || {});
+  if (down.length) vitals.appendChild(el('span', 'alarm', `${down.join(', ')} offline`));
+}
+
+fetch('/api/health').then(r => r.json()).then(h => {
+  health = h;
+  if (h.modes) paintModes(Object.entries(h.modes));
+  paintVitals();
+}).catch(() => { vitals.textContent = 'backend unreachable'; });
+
+function resize() {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 190) + 'px';
+}
+input.addEventListener('input', resize);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+});
+send.onclick = () => (busy ? inFlight?.abort() : submit());
+
+/* ---------- the signature: a gauge per reading -------------------------- */
+function gauge(reason) {
+  const box = el('div', 'gauge ' + reason.severity);
+  if (reason.reading === null || reason.threshold === null) {
+    box.classList.add('plain');
+    const label = el('div', 'gauge-label');
+    label.appendChild(el('span', 'what', NAMES[reason.code] || 'Note'));
+    box.appendChild(label);
+    box.appendChild(el('p', 'detail', reason.detail));
+    return box;
+  }
+
+  const ceiling = Math.max(reason.reading, reason.threshold) * 1.35 || 1;
+  const label = el('div', 'gauge-label');
+  label.appendChild(el('span', 'what', NAMES[reason.code] || reason.code));
+  label.appendChild(el('span', 'limit', `limit ${num(reason.threshold, reason.code)}`));
+  label.appendChild(el('span', 'reading', num(reason.reading, reason.code)));
+  box.appendChild(label);
+
+  const track = el('div', 'track');
+  const fill = el('div', 'fill');
+  const tick = el('div', 'limit-tick');
+  tick.style.left = (reason.threshold / ceiling * 100) + '%';
+  tick.dataset.label = reason.severity === 'blocker' ? 'blocker' : 'caution';
+  track.appendChild(fill);
+  track.appendChild(tick);
+  box.appendChild(track);
+
+  requestAnimationFrame(() => { fill.style.width = (reason.reading / ceiling * 100) + '%'; });
+  return box;
+}
+
+function daylightBand(daylight, requested) {
+  if (!daylight?.sunset || !requested) return null;
+  const hour = iso => { const d = new Date(iso); return d.getHours() + d.getMinutes() / 60; };
+  const rise = hour(daylight.sunrise), set = hour(daylight.sunset);
+  const pct = h => (h / 24 * 100) + '%';
+
+  const wrap = el('div', 'daylight');
+  const strip = el('div', 'strip');
+  const sun = el('div', 'sun');
+  sun.style.left = pct(rise);
+  sun.style.width = ((set - rise) / 24 * 100) + '%';
+  const slot = el('div', 'slot');
+  slot.style.left = pct(requested.start_hour);
+  slot.style.width = ((requested.end_hour - requested.start_hour) / 24 * 100) + '%';
+  strip.appendChild(sun);
+  strip.appendChild(slot);
+  wrap.appendChild(strip);
+
+  const marks = el('div', 'marks');
+  marks.appendChild(el('span', null, `sunrise ${daylight.sunrise.slice(11, 16)}`));
+  marks.appendChild(el('span', null, `sunset ${daylight.sunset.slice(11, 16)}`));
+  wrap.appendChild(marks);
+
+  const over = requested.end_hour - set;
+  const window = `${String(requested.start_hour).padStart(2, '0')}:00\u2013${String(requested.end_hour).padStart(2, '0')}:00`;
+  const minutes = Math.round(Math.abs(over) * 60);
+  const relation = over > 0
+    ? `runs ${Math.floor(minutes / 60)}h ${minutes % 60}m past sunset`
+    : `ends ${Math.floor(minutes / 60)}h ${minutes % 60}m before sunset`;
+  wrap.appendChild(el('p', 'caption', `Your window ${window} \u2014 ${relation}.`));
+  return wrap;
+}
+
+function renderVerdict(result) {
+  const a = result.assessment;
+  const card = el('section', 'verdict');
+
+  const ruling = el('div', 'ruling ' + a.verdict);
+  ruling.appendChild(el('h2', null, RULING[a.verdict] || a.verdict));
+  ruling.appendChild(el('span', 'score', `${a.score} / 100`));
+  card.appendChild(ruling);
+
+  const where = [result.location?.name, result.location?.country].filter(Boolean).join(', ');
+  const when = result.requested ? `${result.requested.date}, ${String(result.requested.start_hour).padStart(2, '0')}:00\u2013${String(result.requested.end_hour).padStart(2, '0')}:00` : '';
+  card.appendChild(el('p', 'whereabouts', [where, when].filter(Boolean).join(' \u00b7 ') + (result.data_source === 'climatology' ? ' \u00b7 seasonal normals, not a forecast' : '')));
+
+  const gauges = el('div', 'gauges');
+  a.reasons.forEach(r => gauges.appendChild(gauge(r)));
+  card.appendChild(gauges);
+
+  const band = daylightBand(result.daylight, result.requested);
+  if (band) card.appendChild(band);
+  return card;
+}
+
+function renderDays(result) {
+  const strip = el('div', 'days');
+  result.days.filter(d => d.verdict).forEach(d => {
+    const cell = el('div', 'day ' + d.verdict);
+    const date = new Date(d.date + 'T00:00');
+    cell.appendChild(el('b', null, date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })));
+    cell.appendChild(document.createTextNode(RULING[d.verdict] || d.verdict));
+    strip.appendChild(cell);
+  });
+  return strip.children.length ? strip : null;
+}
+
+function renderWindows(result) {
+  const rows = el('div', 'rows');
+  result.best_windows.forEach(w => {
+    const row = el('div', 'row');
+    row.appendChild(el('span', 'lead', w.label));
+    row.appendChild(el('span', 'aside', RULING[w.verdict] || w.verdict));
+    row.appendChild(el('span', 'trail', `${w.score}`));
+    rows.appendChild(row);
+  });
+  return rows.children.length ? rows : null;
+}
+
+function renderPlaces(list) {
+  const rows = el('div', 'rows');
+  list.forEach(p => {
+    const row = el('div', 'row');
+    row.appendChild(el('span', 'lead', p.name));
+    const band = p.daily_budget_inr ? `\u20b9${p.daily_budget_inr[0].toLocaleString()}\u2013${p.daily_budget_inr[1].toLocaleString()} est.` : p.region || '';
+    /* Distance next to the price. Without it the row read as a plain
+       recommendation, which is how a place 2,000km away shipped unnoticed. */
+    const far = p.distance_km !== undefined
+      ? `${band ? band + ' · ' : ''}${p.distance_km.toLocaleString()} km away`
+      : band;
+    row.appendChild(el('span', 'aside', far));
+    const score = p.season?.comfort_score ?? p.comfort_score;
+    if (score !== undefined) row.appendChild(el('span', 'trail', `${score}`));
+    rows.appendChild(row);
+  });
+  return rows.children.length ? rows : null;
+}
+
+function titled(label, node) {
+  if (!node) return null;
+  const group = document.createDocumentFragment();
+  group.appendChild(el('p', 'panel-title', label));
+  group.appendChild(node);
+  return group;
+}
+
+function renderFigures(result) {
+  const stats = result.indexed_statistics || result.statistics;
+  if (!stats) return null;
+
+  const table = el('table', 'figures');
+  const head = document.createElement('tr');
+  ['Pair', 'Start', 'Latest', 'Change', 'Per year', 'Fit'].forEach(h => {
+    const th = el('th', null, h);
+    head.appendChild(th);
+  });
+  table.appendChild(head);
+
+  Object.entries(stats).forEach(([pair, fit]) => {
+    if (fit.error) return;
+    const tr = document.createElement('tr');
+    const cells = [
+      [pair, ''],
+      [fit.observed_start.value.toLocaleString(undefined, { maximumFractionDigits: 4 }), ''],
+      [fit.observed_end.value.toLocaleString(undefined, { maximumFractionDigits: 4 }), ''],
+      [`${fit.change_pct > 0 ? '+' : ''}${fit.change_pct.toFixed(1)}%`, ''],
+      [`${fit.slope_per_year > 0 ? '+' : ''}${fit.slope_per_year.toFixed(3)}`, ''],
+      [`R\u00b2 ${fit.r_squared.toFixed(2)}`, fit.r_squared < 0.5 ? 'weak' : '']
+    ];
+    cells.forEach(([text, cls]) => tr.appendChild(el('td', cls, text)));
+    table.appendChild(tr);
+  });
+
+  if (table.rows.length < 2) return null;
+
+  const group = document.createDocumentFragment();
+  group.appendChild(el('p', 'panel-title', result.indexed_statistics ? 'Indexed for comparison' : 'The series'));
+  group.appendChild(table);
+  const meta = result.meta;
+  if (meta) {
+    group.appendChild(el('p', 'provenance',
+      `${meta.first_published} to ${meta.last_published} \u00b7 ${meta.published_days} published days, ` +
+      `${meta.carried_forward_days} carried forward across weekends \u00b7 ECB reference rates`));
+  }
+  return group;
+}
+
+function renderPanel(result) {
+  if (result?.assessment?.reasons) return renderVerdict(result);
+  if (Array.isArray(result?.days)) return titled('Day by day', renderDays(result));
+  if (Array.isArray(result?.best_windows)) return titled('Better windows', renderWindows(result));
+  if (Array.isArray(result?.alternatives)) return titled('Somewhere else', renderPlaces(result.alternatives));
+  if (Array.isArray(result?.results)) return titled('Shortlist', renderPlaces(result.results));
+  if (Array.isArray(result?.destinations)) return titled('Shortlist', renderPlaces(result.destinations));
+  if (result?.statistics || result?.indexed_statistics) return renderFigures(result);
+  return null;
+}
+
+/* ---------- conversation ------------------------------------------------ */
+async function submit() {
+  const message = input.value.trim();
+  if (!message || busy) return;
+  opening.remove();
+  log.classList.remove('empty');
+  busy = true;
+  inFlight = new AbortController();
+  send.textContent = 'Stop';
+  send.classList.add('stopping');
+  input.value = '';
+  resize();
+
+  const turn = el('article', 'turn');
+  turn.appendChild(el('h3', 'asked', message));
+  const panels = el('div');
+  turn.appendChild(panels);
+
+  const trace = el('details', 'trace');
+  const summary = el('summary', null, 'working');
+  const rail = el('div', 'rail');
+  trace.appendChild(summary);
+  trace.appendChild(rail);
+
+  const working = el('div', 'working');
+  working.appendChild(el('span', 'pip'));
+  working.appendChild(el('span', null, 'reading the forecast'));
+  turn.appendChild(working);
+  log.appendChild(turn);
+  scroll();
+
+  const open = {};
+  let calls = 0;
+  let elapsed = 0;
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, session_id: sessionId, mode }),
+      signal: inFlight.signal
+    });
+    if (!response.ok) {
+      /* A refusal, usually a rate limit, arrives as JSON rather than a stream.
+         Read as a stream it yielded no frames and the turn showed nothing. */
+      const body = await response.json().catch(() => ({}));
+      const refusal = new Error(body.detail || `The server answered ${response.status}.`);
+      refusal.refused = true;
+      throw refusal;
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop();
+      for (const chunk of chunks) {
+        const line = chunk.split('\n').find(l => l.startsWith('data: '));
+        if (line) handle(JSON.parse(line.slice(6)));
+      }
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      // A deliberate stop is not a fault, so it gets no alarm styling. The
+      // server keeps whatever the turn already appended to the history.
+      turn.appendChild(el('div', 'tally', 'Stopped.'));
+      offerRetry(turn, message);
+    } else if (err.refused) {
+      turn.appendChild(el('div', 'snag', err.message));
+      offerRetry(turn, message);
+    } else {
+      turn.appendChild(el('div', 'snag', 'The connection dropped: ' + err.message));
+      offerRetry(turn, message);
+    }
+  }
+
+  function handle(event) {
+    if (event.type === 'session') { rememberSession(event.session_id); return; }
+
+    if (event.type === 'status') {
+      working.lastChild.textContent = event.step > 1 ? 'thinking it through' : 'reading the forecast';
+      return;
+    }
+
+    if (event.type === 'tool_start') {
+      const [server, fn] = event.name.split('__');
+      const call = el('div', 'call');
+      const line = el('div', 'call-line');
+      line.appendChild(el('span', 'srv', server));
+      line.appendChild(el('span', 'fn', fn.replace(/_/g, ' ')));
+      const ms = el('span', 'ms', '\u2026');
+      line.appendChild(ms);
+      call.appendChild(line);
+      rail.appendChild(call);
+      open[event.name] = { call, ms };
+      working.lastChild.textContent = fn.replace(/_/g, ' ');
+      return;
+    }
+
+    if (event.type === 'tool_end') {
+      const entry = open[event.name];
+      calls += 1;
+      elapsed += event.ms;
+      if (entry) {
+        entry.ms.textContent = `${event.ms} ms`;
+        if (!event.ok) entry.call.classList.add('failed');
+        const payload = el('div', 'payload', JSON.stringify(event.result, null, 2).slice(0, 3500));
+        entry.call.appendChild(payload);
+      }
+      const panel = renderPanel(event.result);
+      if (panel) { panels.appendChild(panel); scroll(); }
+      return;
+    }
+
+    if (event.type === 'file') {
+      let shelf = turn.querySelector('.artefacts');
+      if (!shelf) { shelf = el('div', 'artefacts'); turn.appendChild(shelf); }
+      if (event.kind === 'image') {
+        const img = el('img', 'plate');
+        img.src = event.url;
+        img.alt = 'Generated chart';
+        shelf.appendChild(img);
+      } else {
+        const link = el('a', 'grab');
+        link.href = event.url;
+        link.download = event.filename;
+        link.appendChild(el('span', 'ext', event.kind));
+        link.appendChild(el('span', null, event.filename));
+        link.appendChild(el('span', 'go', 'Download'));
+        shelf.appendChild(link);
+      }
+      scroll();
+      return;
+    }
+
+    if (event.type === 'answer') {
+      turn.insertBefore(renderReply(event.text), working);
+      scroll();
+      return;
+    }
+
+    if (event.type === 'error') {
+      turn.appendChild(el('div', 'snag', event.text));
+      offerRetry(turn, message);
+      return;
+    }
+
+    if (event.type === 'done') {
+      const parts = [];
+      if (calls) parts.push(`${calls} tool call${calls > 1 ? 's' : ''}`);
+      if (elapsed) parts.push(`${(elapsed / 1000).toFixed(1)}s in tools`);
+      if (event.tokens) parts.push(`${event.tokens.toLocaleString()} tokens`);
+      if (event.reason && event.reason !== 'answered') parts.push(`stopped: ${event.reason}`);
+      if (calls) {
+        summary.textContent = parts.join(' \u00b7 ');
+        turn.appendChild(trace);
+      } else if (parts.length) {
+        turn.appendChild(el('div', 'tally', parts.join(' \u00b7 ')));
+      }
+      scroll();
+    }
+  }
+
+  working.remove();
+  busy = false;
+  inFlight = null;
+  send.textContent = 'Ask';
+  send.classList.remove('stopping');
+  input.focus();
+}
+</script>
+</body>
+</html>

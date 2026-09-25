@@ -1,0 +1,12 @@
+.venv/
+.env
+.cache/
+outputs/*
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.git/
+.github/
+# ~470 KB of example artefacts. The app regenerates its own at runtime.
+samples/
