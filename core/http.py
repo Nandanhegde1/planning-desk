@@ -120,6 +120,15 @@ async def get_json(
             client = await _shared_client()
             response = await client.get(url, params=params, headers=merged)
             if response.status_code == 429 or response.status_code >= 500:
+                # Why a limit was hit is only in the body and headers. Logged on
+                # the server, so a per-minute limit can be told apart from a
+                # spent daily quota; the error the tool returns stays short.
+                print(
+                    f"{host} returned {response.status_code} "
+                    f"(retry-after={response.headers.get('retry-after')!r}): "
+                    f"{response.text[:200]!r}",
+                    file=sys.stderr,
+                )
                 raise FetchError(f"{host} returned {response.status_code}")
             if response.status_code >= 400:
                 # Deterministic; retrying will not help.
