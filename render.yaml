@@ -33,6 +33,10 @@ services:
         value: "100"
       - key: PUBLIC_NOTICE
         value: Runs on a free model tier that may use what you type for training. Do not enter personal details.
+      # Render's shared outbound address spends Open-Meteo's per-IP daily quota, so
+      # weather calls go through the Worker in edge/. Unset to call Open-Meteo directly.
+      - key: OPEN_METEO_PROXY
+        value: https://planning-desk-edge.nandanhegde1096.workers.dev
       # Nominatim asks every caller to identify itself.
       - key: HTTP_USER_AGENT
         value: planning-desk/1.0 (+https://github.com/Nandanhegde1/planning-desk)

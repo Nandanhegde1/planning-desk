@@ -10,3 +10,5 @@ __pycache__/
 .github/
 # ~470 KB of example artefacts. The app regenerates its own at runtime.
 samples/
+# The Cloudflare Worker deploys separately.
+edge/

@@ -5,13 +5,13 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from core.http import FetchError, get_json
+from core.http import FetchError, get_json, open_meteo
 
-GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
+GEOCODE_URL = open_meteo("https://geocoding-api.open-meteo.com/v1/search")
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
-AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
-ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+FORECAST_URL = open_meteo("https://api.open-meteo.com/v1/forecast")
+AIR_URL = open_meteo("https://air-quality-api.open-meteo.com/v1/air-quality")
+ARCHIVE_URL = open_meteo("https://archive-api.open-meteo.com/v1/archive")
 
 FORECAST_HORIZON_DAYS = 15
 

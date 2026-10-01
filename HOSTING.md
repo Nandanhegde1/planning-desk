@@ -52,13 +52,27 @@ Expect `"status": "ok"` and `"tool_count": 18`. Health returning ok means the
 tools started and a key is present, not that the key works, so ask one real
 question in the page as well.
 
-### Keeping it awake
+### The edge Worker
 
-For a link that should answer at once, point a free uptime monitor, such as
-UptimeRobot, at `/api/health/live` every five minutes. One service kept awake
-all month uses about 744 of the 750 free hours. It also means conversations
-survive between visits, since the process no longer restarts after every quiet
-spell.
+`edge/` holds a small Cloudflare Worker, `planning-desk-edge`, on the free
+Workers plan. It does two jobs.
+
+**Weather calls.** Open-Meteo's free API caps requests per IP per day, and Render's
+free plan shares its outbound address between tenants. On the first day live,
+every forecast and archive call came back 429 with "Daily API request limit
+exceeded" while the same request from elsewhere returned 200, and the app fell
+back to climatology. `OPEN_METEO_PROXY` in `render.yaml` points all four
+Open-Meteo endpoints at the Worker, which passes them through, caches successes
+at the edge, and refuses every other path. Leave the variable unset to call
+Open-Meteo directly.
+
+**Keeping it awake.** A cron trigger hits `/api/health/live` every ten minutes,
+so the service never reaches the 15-minute idle limit and the first visitor does
+not wait for a cold start. One service kept awake all month uses about 744 of
+the 750 free hours, and conversations survive between visits because the process
+no longer restarts after every quiet spell.
+
+Deploy it from `edge/` with `npx wrangler deploy`.
 
 ## One worker, always
 

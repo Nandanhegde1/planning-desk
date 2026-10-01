@@ -14,10 +14,10 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from core.http import FetchError, get_json
+from core.http import FetchError, get_json, open_meteo
 
 SEED_PATH = Path(__file__).resolve().parent / "destinations_seed.json"
-CLIMATE_URL = "https://archive-api.open-meteo.com/v1/archive"
+CLIMATE_URL = open_meteo("https://archive-api.open-meteo.com/v1/archive")
 
 # A ceiling on archive requests in flight from this process. Scoring a shortlist
 # fans out to a request per destination per year, and without a ceiling that is

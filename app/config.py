@@ -69,6 +69,7 @@ SERVER_ENV_KEYS = [
     "HTTP_USER_AGENT",
     "HTTP_TIMEOUT_SECONDS",
     "CACHE_DIR",
+    "OPEN_METEO_PROXY",
     # Read inside core/, which runs in the child rather than the host. Missing
     # here they were dead in the container, where .dockerignore excludes .env and
     # each server's own load_dotenv finds nothing. They matched their defaults, so

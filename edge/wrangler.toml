@@ -1,0 +1,11 @@
+# Deploy from this folder: npx wrangler deploy
+name = "planning-desk-edge"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[triggers]
+crons = ["*/10 * * * *"]
+
+[vars]
+KEEPALIVE_URL = "https://planning-desk.onrender.com/api/health/live"

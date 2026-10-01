@@ -22,6 +22,24 @@ USER_AGENT = os.environ.get(
 )
 TIMEOUT = float(os.environ.get("HTTP_TIMEOUT_SECONDS", "20"))
 
+# Open-Meteo's free API caps requests per IP per day. On a host whose outbound
+# address is shared, other tenants can spend that cap before this app makes a
+# call, which is what happened on Render's free plan. OPEN_METEO_PROXY sends every
+# Open-Meteo request through a pass-through instead (edge/ in this repo). Unset,
+# the app calls Open-Meteo directly.
+OPEN_METEO_PROXY = os.environ.get("OPEN_METEO_PROXY", "").rstrip("/")
+
+
+def open_meteo(url: str) -> str:
+    """An Open-Meteo endpoint, through the proxy when one is configured.
+
+    The four endpoints have distinct paths, so the proxy routes on the path alone.
+    """
+    if not OPEN_METEO_PROXY:
+        return url
+    return OPEN_METEO_PROXY + httpx.URL(url).path
+
+
 # Nominatim's usage policy caps anonymous use at one request a second.
 _HOST_MIN_INTERVAL = {"nominatim.openstreetmap.org": 1.1}
 _last_call: dict[str, float] = {}
