@@ -249,7 +249,7 @@ tests.
 python -m pytest -q
 ```
 
-Expect `185 passed` in about four minutes. These need no internet and no API key.
+Expect `187 passed` in about four minutes. These need no internet and no API key.
 They check the feasibility rules, the trend maths, the file generation, the
 three tool servers, and the safety limits on the loop.
 

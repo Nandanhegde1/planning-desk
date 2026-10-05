@@ -12,6 +12,7 @@ import time
 from collections import deque
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -208,6 +209,13 @@ async def health() -> JSONResponse:
             },
             "default_mode": config.DEFAULT_MODE,
             "sessions": len(sessions),
+            # provider_ready only checks that a key is set, so it stays true through a
+            # spent quota or a revoked key. These two say what a visitor would hit.
+            # Reported, not judged: neither is a reason to restart the container, so
+            # neither changes the status code. Both live in this process and reset
+            # on a restart or a deploy.
+            "last_model_error_at": _last_model_error_at,
+            "daily_cap_reached": _daily_cap_reached(),
             "limits": {
                 "max_steps": config.MAX_STEPS,
                 "max_tool_calls": config.MAX_TOOL_CALLS,
@@ -257,16 +265,34 @@ _daily: deque[float] = deque()
 DAY_SECONDS = 86400.0
 
 
+def _turns_in_last_day() -> int:
+    cutoff = time.monotonic() - DAY_SECONDS
+    while _daily and _daily[0] <= cutoff:
+        _daily.popleft()
+    return len(_daily)
+
+
 def _over_daily_cap() -> bool:
     if config.DAILY_TURN_CAP <= 0:
         return False
-    now = time.monotonic()
-    while _daily and _daily[0] <= now - DAY_SECONDS:
-        _daily.popleft()
-    if len(_daily) >= config.DAILY_TURN_CAP:
+    if _turns_in_last_day() >= config.DAILY_TURN_CAP:
         return True
-    _daily.append(now)
+    _daily.append(time.monotonic())
     return False
+
+
+def _daily_cap_reached() -> bool:
+    """For /api/health. Unlike _over_daily_cap, asking does not count a turn."""
+    return config.DAILY_TURN_CAP > 0 and _turns_in_last_day() >= config.DAILY_TURN_CAP
+
+
+# When a model call last failed, in UTC, for /api/health.
+_last_model_error_at: str | None = None
+
+
+def _note_model_error() -> None:
+    global _last_model_error_at
+    _last_model_error_at = datetime.now(UTC).isoformat(timespec="seconds")
 
 
 @app.post("/api/chat")
@@ -303,6 +329,8 @@ async def chat(request: ChatRequest, http_request: Request) -> StreamingResponse
         try:
             mode = request.mode if request.mode in config.MODES else config.DEFAULT_MODE
             async for event in run_turn(host, session.history, request.message, mode):
+                if event.get("type") == "done" and event.get("reason") == "model_error":
+                    _note_model_error()
                 yield f"data: {json.dumps(event, default=str)}\n\n"
         except Exception:
             # Full detail to the log, a reference to the browser. Upstream

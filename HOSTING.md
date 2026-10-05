@@ -52,7 +52,10 @@ curl https://<service>.onrender.com/api/health
 
 Expect `"status": "ok"` and `"tool_count": 18`. Health returning ok means the
 tools started and a key is present, not that the key works, so ask one real
-question in the page as well.
+question in the page as well. After that, `last_model_error_at` is the time of
+the last failed model call, or null if none has failed since the instance
+started, and `daily_cap_reached` says whether `DAILY_TURN_CAP` is turning
+visitors away.
 
 ### The edge Worker
 

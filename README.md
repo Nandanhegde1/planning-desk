@@ -159,7 +159,7 @@ Python processes on every message would dominate response time.
 app/     agent loop, MCP client, model client, HTTP surface, the interface
 servers/ three MCP servers
 core/    rules engine, weather, exchange rates, exports, destinations
-tests/   185 tests, none of which need a network or an API key
+tests/   187 tests, none of which need a network or an API key
 scripts/ check_apis.py preflight
 samples/ example output, generated from a synthetic fixture
 ```
@@ -272,7 +272,7 @@ question; the levels are not.
 
 ```bash
 python -m pip install -r requirements-dev.txt   # adds ruff
-python -m pytest -q                             # 185 tests, about four minutes
+python -m pytest -q                             # 187 tests, about four minutes
 python -m ruff check .
 ```
 
@@ -340,7 +340,7 @@ container is enough; anything smaller is not.
 ## What "production ready" means here, and what it does not
 
 The code is linted clean under ruff with a broad ruleset, formatted, and covered
-by 185 tests that need no network. Resources are bounded: the agent loop has step,
+by 187 tests that need no network. Resources are bounded: the agent loop has step,
 tool and token ceilings; the session store evicts on age and count; generated
 files are pruned on age and count; every outbound call has a timeout, a retry
 budget and a cache. Failures return structured errors rather than raising.
@@ -350,6 +350,11 @@ There are two health endpoints, and the split matters when deploying.
 container probe should watch. `/api/health` is the readiness view and reports 503
 when the model provider or an MCP server is unavailable — pointing a probe at it
 turns a missing key into a revision that never activates.
+
+A key that is set but spent or revoked still reads as ready, so `/api/health`
+also reports `last_model_error_at`, the last time a model call failed, and
+`daily_cap_reached`. Neither changes the status code. Both are held in the
+process, so a restart or a deploy resets them.
 
 Every response carries a content security policy that confines the page to its
 own origin, plus `nosniff`, `DENY` framing and `no-referrer`. The page makes no

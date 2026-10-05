@@ -11,6 +11,7 @@ what the model was shown on each call.
 
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app import agent, config, main  # noqa: E402
+from app.llm import LLMError  # noqa: E402
 
 # What the model was handed, one entry per call.
 PROMPTS: list[list[dict]] = []
@@ -50,6 +52,7 @@ def clean_state():
     # window and later tests receive a 429 instead of what they are testing.
     main._hits.clear()
     main._daily.clear()
+    main._last_model_error_at = None
     PROMPTS.clear()
     yield
 
@@ -707,6 +710,38 @@ def test_a_daily_cap_of_zero_turns_it_off(client, monkeypatch):
 def test_health_carries_the_public_notice(client, monkeypatch):
     monkeypatch.setattr(config, "PUBLIC_NOTICE", "Runs on a free model tier.")
     assert client.get("/api/health").json()["notice"] == "Runs on a free model tier."
+
+
+def test_health_reports_a_model_error_and_a_full_daily_cap(client, monkeypatch):
+    """A spent quota or a revoked key left /api/health at ok, because the key was
+    still set, and a full day's cap showed only as a refused turn. Both are
+    reported now, and neither changes the status code."""
+    before = client.get("/api/health")
+    assert before.json()["last_model_error_at"] is None
+    assert before.json()["daily_cap_reached"] is False
+
+    async def refuse(messages, tools=None, **kwargs):
+        raise LLMError("model host returned 429")
+
+    monkeypatch.setattr(agent, "complete", refuse)
+    monkeypatch.setattr(config, "DAILY_TURN_CAP", 1)
+    _, frames = ask(client, "hi")
+    assert frames[-1] == {"type": "done", "reason": "model_error"}
+
+    after = client.get("/api/health")
+    assert datetime.fromisoformat(after.json()["last_model_error_at"]).tzinfo is not None
+    assert after.json()["daily_cap_reached"] is True
+    assert after.status_code == before.status_code
+
+
+def test_reading_health_does_not_spend_a_turn(client, monkeypatch):
+    """The cap check that admits a turn also counts it. Health must only look,
+    or a monitor polling it would use up the day's turns."""
+    monkeypatch.setattr(config, "DAILY_TURN_CAP", 1)
+    for _ in range(3):
+        assert client.get("/api/health").json()["daily_cap_reached"] is False
+
+    assert client.post("/api/chat", json={"message": "hi", "mode": "planning"}).status_code == 200
 
 
 def test_the_page_shows_a_refusal_instead_of_painting_nothing(client):
