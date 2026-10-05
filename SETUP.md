@@ -139,8 +139,9 @@ TAVILY_API_KEY=tvly-paste-here
 HTTP_USER_AGENT=planning-desk/0.1 (your.email@example.com)
 ```
 
-Leave everything else as it is. `LLM_PROVIDER=foundry` is already the default,
-so you should not need to change that line.
+Leave everything else as it is, apart from `LLM_PROVIDER`. `.env.example` sets it
+to `openai`, for Gemini, so change it to `foundry`. With no value at all the app
+falls back to `github`, which was retired and no longer answers.
 
 That last line asks you to put your email in. The free map service the project
 uses asks anyone calling it to say who they are, so they have someone to contact
@@ -233,12 +234,13 @@ another machine:
 
 The two assignments are separate tabs across the top, and separate URLs:
 `?mode=planning` for feasibility and destinations, `?mode=currency` for exchange
-rates. Switching tabs starts a fresh conversation and changes which tools the
-model can see. `?mode=all` gives it everything.
+rates. Switching tabs keeps the conversation and changes which tools the model
+can see. `?mode=all` gives it everything.
 
-Look at the grey strip along the top. It should show your model name and
-**18 mcp tools**. If it says fewer, or says a server is down, one of the three
-tool servers failed to start — look at the terminal for the reason.
+Look at the grey strip along the top. It should show your model name and the
+tool count for the tab you are on: **11 tools** on Plans, **12** on Currencies
+and **18** with `?mode=all`. If it shows fewer, or names a server as offline,
+one of the three tool servers failed to start. The terminal says why.
 
 **Step 11.** In a second terminal, activate the virtualenv again and run the
 tests.
@@ -247,7 +249,7 @@ tests.
 python -m pytest -q
 ```
 
-Expect `68 passed` in about a minute. These need no internet and no Azure key.
+Expect `185 passed` in about four minutes. These need no internet and no API key.
 They check the feasibility rules, the trend maths, the file generation, the
 three tool servers, and the safety limits on the loop.
 
@@ -366,6 +368,10 @@ evening on it.
 
 You need a host that runs a container. Two options.
 
+**Render.** The live app runs here, on the free plan. `render.yaml` sets the
+service up as a Blueprint, and `HOSTING.md` has the steps, including the
+Cloudflare Worker that weather calls go through.
+
 **Azure Container Apps** — makes sense because your model is already in Azure.
 
 ```bash
@@ -379,11 +385,6 @@ Foundry key there. Then go to **Containers**, edit, and add the environment
 variables `LLM_PROVIDER`, `AZURE_OPENAI_ENDPOINT` and `AZURE_OPENAI_DEPLOYMENT`,
 with the key pointing at the secret you just made. Set minimum replicas to zero
 so it costs nothing while nobody is using it.
-
-**Hugging Face Spaces** — free, no card, and keeps this off your Azure bill.
-Create a Space, choose Docker as the type and the free CPU option, add the block
-shown in the README's Hosting section to the top of your README, and push. Put
-your keys in Settings, under Variables and secrets.
 
 **Or, if it only needs to survive one demo call**, skip hosting entirely. Run it
 on your laptop and open a temporary public link:

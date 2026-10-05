@@ -11,7 +11,7 @@ loop and the MCP host; they differ only in which MCP server the model reaches
 for.
 
 No orchestration framework is used. The agent loop is one function, `run_turn` in
-`app/agent.py`, about 150 lines including its four ceilings, and it was written by
+`app/agent.py`, about 230 lines including its four ceilings, and it was written by
 hand, which is the point of the exercise.
 
 Other documents: `SPECIFICATION.md` walks every function with the implementation
@@ -139,7 +139,7 @@ python scripts/check_coverage.py
 browser (single HTML file, SSE)
       │
       ▼
-FastAPI host ──────────────► model endpoint (Foundry / GitHub Models / Ollama)
+FastAPI host ──────────────► model endpoint (Gemini / Foundry / Ollama)
       │  agent loop: tools → results → repeat, with hard ceilings
       ▼
 MCP client ── stdio ──┬── feasibility server ── Open-Meteo forecast, air, archive
@@ -159,7 +159,7 @@ Python processes on every message would dominate response time.
 app/     agent loop, MCP client, model client, HTTP surface, the interface
 servers/ three MCP servers
 core/    rules engine, weather, exchange rates, exports, destinations
-tests/   95 tests, none of which need a network or an API key
+tests/   185 tests, none of which need a network or an API key
 scripts/ check_apis.py preflight
 samples/ example output, generated from a synthetic fixture
 ```
@@ -194,8 +194,9 @@ rejected.** Agent Service would manage the thread, the tool selection and the
 loop, which is precisely the part under assessment; it expects MCP servers
 reachable on the public internet or inside the same virtual network, so these
 stdio servers would need deploying before anything worked; and its MCP support
-has shipped as a gated preview limited to specific regions. Foundry is still
-used, as the model host, which is the part of it that adds value here.
+has shipped as a gated preview limited to specific regions. Foundry was used
+as the model host until September 2026, which is the part of it that added
+value here.
 
 **Every loop has a ceiling.** Eight steps, twelve tool calls, sixty thousand
 tokens per turn, forty-five seconds per tool. Each is a hard stop, each is
@@ -271,7 +272,7 @@ question; the levels are not.
 
 ```bash
 python -m pip install -r requirements-dev.txt   # adds ruff
-python -m pytest -q                             # 95 tests, about four minutes
+python -m pytest -q                             # 185 tests, about four minutes
 python -m ruff check .
 ```
 
@@ -313,6 +314,12 @@ has the steps, the free-tier limits that come with it, and what happened to the
 earlier Azure deployment. Keys are set on the service when the Blueprint is
 created, and nothing secret goes into the image.
 
+Weather calls go through a small Cloudflare Worker in `edge/`, on the free
+Workers plan. Open-Meteo caps requests per address per day, and Render's free
+plan shares its outbound address between tenants, so direct calls were refused
+on the first day live. The same Worker pings `/api/health/live` every ten
+minutes so the service does not sleep.
+
 For a link that only has to survive a demo call, run locally and put a
 Cloudflare quick tunnel in front of it. No account, no deployment:
 
@@ -333,7 +340,7 @@ container is enough; anything smaller is not.
 ## What "production ready" means here, and what it does not
 
 The code is linted clean under ruff with a broad ruleset, formatted, and covered
-by 95 tests that need no network. Resources are bounded: the agent loop has step,
+by 185 tests that need no network. Resources are bounded: the agent loop has step,
 tool and token ceilings; the session store evicts on age and count; generated
 files are pruned on age and count; every outbound call has a timeout, a retry
 budget and a cache. Failures return structured errors rather than raising.

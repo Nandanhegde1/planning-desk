@@ -4,12 +4,14 @@
 
 One free Render web service builds the Dockerfile in this repository and runs
 it. The model is Gemini on Google's free tier, reached through the `openai`
-provider. `render.yaml` holds the whole configuration.
+provider. `render.yaml` holds the service's configuration. Weather calls go
+through a small Cloudflare Worker, configured in `edge/` and described below.
 
 ```
 host      Render web service, free plan, Singapore, Docker runtime
 app       one worker, liveness probe on /api/health/live
 model     gemini-3.5-flash-lite, free tier
+edge      Cloudflare Worker, free plan: Open-Meteo pass-through, keep-alive cron
 ```
 
 Everything costs nothing, within these limits:
