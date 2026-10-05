@@ -89,6 +89,32 @@ async def test_a_venue_activity_is_refused_rather_than_answered():
     assert "alternatives" not in result
 
 
+@pytest.mark.asyncio
+async def test_a_trip_length_is_refused_by_the_windows_tool():
+    """The prompt sent trips here, and the model asked for a 96 hour window. The
+    hours searched run 06:00 to 22:00, so that scored nothing and returned an
+    empty success. Refused before any lookup, so no network is touched."""
+    import importlib
+
+    feasibility = importlib.import_module("feasibility_server")
+    result = await feasibility.suggest_better_windows(
+        "Manali", "2026-10-09", start_hour=0, duration_hours=96
+    )
+
+    assert "1-16" in result["error"]
+    assert "check_travel_plan" in result["error"]
+
+
+def test_the_prompt_no_longer_sends_trips_to_the_windows_tool():
+    """Pins the prompt to what the tool can serve. A trip's dates are answered by
+    check_travel_plan's day-by-day verdicts; only the place needs another tool."""
+    from app import agent
+
+    prompt = " ".join(agent.SYSTEM_PROMPT.lower().split())
+    assert "do not call suggest_better_windows for a trip" in prompt
+    assert "call suggest_alternative_destinations for other places" in prompt
+
+
 def test_overlapping_windows_are_collapsed():
     """The transcript offered Thursday 06:00-09:00, 07:00-10:00 and 08:00-11:00.
     One morning, shown three times."""

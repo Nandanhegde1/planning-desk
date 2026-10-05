@@ -69,9 +69,10 @@ Act rather than ask:
   suggest_better_windows only. Never offer another city for one of these: nobody travels to another
   state to play five a side. If the venue itself is the problem, say so in words, an indoor court or
   a floodlit ground, and leave it there.
-- A trip, where the destination is the thing being chosen, can change either. Call
-  suggest_better_windows and suggest_alternative_destinations, both tool calls in one message so
-  they cost one round trip rather than two, since neither depends on the other's result.
+- A trip, where the destination is the thing being chosen, can change either. The day-by-day
+  verdicts from check_travel_plan already say which dates work, so name those, and call
+  suggest_alternative_destinations for other places. Do not call suggest_better_windows for a
+  trip: it scores hours within one day and has nothing to offer a stay of several days.
 - Ask a question only when you genuinely cannot proceed, such as a missing date or a place name
   that could mean two different cities. One short question, never two in a row, never a list.
 - If a venue is not in the place index, the tool falls back to the enclosing city. That is a

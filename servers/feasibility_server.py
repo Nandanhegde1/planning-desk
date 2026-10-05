@@ -230,6 +230,16 @@ async def suggest_better_windows(
         target = date.fromisoformat(date_iso)
     except ValueError:
         return {"error": f"date_iso must look like 2026-08-22, got {date_iso!r}"}
+    # Windows are drawn between 06:00 and 22:00 below, so nothing longer fits. A
+    # trip sent here as 96 hours scored no windows and came back as an empty
+    # success, and the answer quietly lost its better-time half.
+    if not 1 <= duration_hours <= 16:
+        return {
+            "error": (
+                "duration_hours must be 1-16, the span of the day searched here. For a trip of "
+                "several days, the day-by-day verdicts from check_travel_plan say which dates work."
+            )
+        }
 
     try:
         location = await _resolve(place)
