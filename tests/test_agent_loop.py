@@ -339,6 +339,58 @@ async def test_a_model_outage_ends_the_turn_cleanly(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_a_model_outage_reaches_the_server_log(monkeypatch, caplog):
+    """The browser was the only place a spent quota or a revoked key showed up."""
+    async def broken(messages, tools=None, **kwargs):
+        raise agent.LLMError("model host returned 403; the detail is in the log")
+
+    monkeypatch.setattr(agent, "complete", broken)
+    async with MCPHost() as host:
+        with caplog.at_level("WARNING", logger="agent"):
+            await collect(host, [], "hello")
+
+    assert "model call failed" in caplog.text
+    assert "403" in caplog.text
+
+
+class RefusingHost:
+    """Every tool call fails. Enough of a host for run_turn, without servers."""
+
+    def tools_for(self, mode):
+        return []
+
+    async def call(self, name, arguments, timeout=None):
+        return {"error": "upstream refused: " + "x" * 500}
+
+
+@pytest.mark.asyncio
+async def test_a_failed_tool_call_is_logged_with_its_arguments_cut_short(monkeypatch, caplog):
+    """A failed call used to exist only in the browser's trace. The arguments are
+    visitor text, so the log keeps only the start of them."""
+    long_place = "Cubbon Park, Bengaluru " * 20
+    monkeypatch.setattr(
+        agent,
+        "complete",
+        scripted(
+            tool_call(
+                "c1",
+                "feasibility__suggest_better_windows",
+                f'{{"place": "{long_place}", "date_iso": "2026-08-22"}}',
+            ),
+            {"content": "It failed."},
+        ),
+    )
+    with caplog.at_level("WARNING", logger="agent"):
+        await collect(RefusingHost(), [], "a match")
+
+    line = next(r.getMessage() for r in caplog.records if "failed after" in r.getMessage())
+    assert "feasibility__suggest_better_windows" in line
+    assert "upstream refused" in line
+    assert long_place not in line, "arguments must be truncated"
+    assert len(line) < 700
+
+
+@pytest.mark.asyncio
 async def test_history_trimming_never_orphans_a_tool_result():
     history = [{"role": "tool", "tool_call_id": "x", "content": "{}"}] + [
         {"role": "user", "content": "hi"}

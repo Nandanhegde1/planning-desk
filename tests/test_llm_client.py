@@ -111,6 +111,27 @@ async def test_other_400s_are_not_silently_retried(monkeypatch, openai_provider)
 
 
 @pytest.mark.asyncio
+async def test_a_host_error_body_goes_to_the_log_not_the_browser(
+    monkeypatch, openai_provider, caplog
+):
+    """The error text reaches the visitor and is replayed by /api/session. The
+    host's own body is for whoever runs the deployment, so it goes to the log."""
+    fake_transport(
+        monkeypatch,
+        lambda body, url: httpx.Response(
+            403, text='{"error":"project 123 has no access"}', request=httpx.Request("POST", url)
+        ),
+        [],
+    )
+    with caplog.at_level("WARNING", logger="llm"), pytest.raises(llm.LLMError) as caught:
+        await llm.complete([{"role": "user", "content": "hi"}])
+
+    assert "403" in str(caught.value)
+    assert "project 123" not in str(caught.value)
+    assert "project 123" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_credential_and_rate_limit_failures_are_readable(monkeypatch, openai_provider):
     for status, expected in [(401, "credentials"), (429, "rate limiting")]:
         sent = []

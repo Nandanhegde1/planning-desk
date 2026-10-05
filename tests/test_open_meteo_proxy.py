@@ -10,6 +10,9 @@ import re
 import sys
 from pathlib import Path
 
+import httpx
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core import http  # noqa: E402
@@ -52,3 +55,23 @@ def test_the_edge_worker_serves_exactly_those_paths():
     worker = (ROOT / "edge" / "src" / "index.js").read_text(encoding="utf-8")
     routes = set(re.findall(r'"(/v1/[a-z-]+)":', worker))
     assert routes == {"/v1/forecast", "/v1/archive", "/v1/air-quality", "/v1/search"}
+
+
+async def test_a_hard_refusal_is_printed_with_host_and_status(monkeypatch, capsys):
+    """A 4xx raised without a word, and the air-quality and venue lookups turn
+    any failure into "no data", so a refusal left no trace on the server."""
+
+    def refuse(request):
+        return httpx.Response(400, text="end_date is out of allowed range")
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(refuse))
+
+    async def shared_client():
+        return client
+
+    monkeypatch.setattr(http, "_shared_client", shared_client)
+    with pytest.raises(http.PermanentFetchError):
+        await http.get_json("https://air-quality.example/v1/air-quality", ttl_seconds=0)
+    await client.aclose()
+
+    assert "air-quality.example returned 400" in capsys.readouterr().err

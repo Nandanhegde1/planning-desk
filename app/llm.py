@@ -159,7 +159,10 @@ async def complete(
             f"{config.LLM_RETRY_ATTEMPTS} attempts; wait a moment and retry"
         )
     if response.status_code >= 400:
-        raise LLMError(f"model host returned {response.status_code}: {response.text[:400]}")
+        # The body goes to the log, not into the error. The error reaches the
+        # browser, and the session transcript, and a host's body is not for them.
+        log.warning("model host returned %s: %s", response.status_code, response.text[:400])
+        raise LLMError(f"model host returned {response.status_code}; the detail is in the log")
 
     # A host that is gone or misrouted can answer 200 with something that is not
     # JSON: the retired GitHub Models endpoint returns a plain "OK", and a proxy
@@ -174,10 +177,12 @@ async def complete(
             "check the base url"
         ) from None
     if not isinstance(payload, dict):
-        raise LLMError(f"model host returned an unexpected body: {str(payload)[:300]}")
+        log.warning("model host returned an unexpected body: %s", str(payload)[:300])
+        raise LLMError("model host returned an unexpected body; the detail is in the log")
     choices = payload.get("choices") or []
     if not choices:
-        raise LLMError(f"model host returned no choices: {str(payload)[:300]}")
+        log.warning("model host returned no choices: %s", str(payload)[:300])
+        raise LLMError("model host returned no choices; the detail is in the log")
 
     return {
         "message": choices[0].get("message", {}),

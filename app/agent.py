@@ -299,6 +299,9 @@ async def run_turn(
         try:
             result = await complete(messages, None if winding_up else tools)
         except LLMError as exc:
+            # Logged as well as shown. Until it was, a revoked key or a spent quota
+            # was visible only to the visitor who hit it.
+            log.warning("model call failed at step %d: %s", step, exc)
             yield {"type": "error", "text": str(exc)}
             history.append({"role": "assistant", "content": f"[model unavailable: {exc}]"})
             yield {"type": "done", "reason": "model_error"}
@@ -412,12 +415,24 @@ async def run_turn(
             else:
                 payload, elapsed = result
                 serialised = json.dumps(payload, default=str)
+                ok = "error" not in payload
+                if not ok:
+                    # The browser trace was the only record of a failed call, and it
+                    # is gone when the tab closes. Arguments are visitor text, so
+                    # only the start of them is kept.
+                    log.warning(
+                        "tool %s failed after %d ms, arguments %s: %s",
+                        name,
+                        round(elapsed * 1000),
+                        json.dumps(arguments, default=str)[:200],
+                        str(payload["error"])[:300],
+                    )
                 yield {
                     "type": "tool_end",
                     "name": name,
                     "ms": round(elapsed * 1000),
                     "bytes": len(serialised),
-                    "ok": "error" not in payload,
+                    "ok": ok,
                     "result": payload,
                 }
                 if isinstance(payload, dict) and payload.get("file"):

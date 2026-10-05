@@ -149,7 +149,10 @@ async def get_json(
                 )
                 raise FetchError(f"{host} returned {response.status_code}")
             if response.status_code >= 400:
-                # Deterministic; retrying will not help.
+                # Deterministic; retrying will not help. Printed too, because some
+                # callers turn a failure into "no data", and then nothing recorded
+                # that a host had refused.
+                print(f"{host} returned {response.status_code}", file=sys.stderr)
                 raise PermanentFetchError(
                     f"{host} returned {response.status_code}: {response.text[:200]}"
                 )
