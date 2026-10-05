@@ -153,3 +153,25 @@ def test_alternatives_rank_the_calmest_window_first():
     assert ranked[0]["label"] == "fine"
     assert ranked[-1]["label"] == "wet"
     assert ranked[0]["score"] >= ranked[1]["score"] >= ranked[2]["score"]
+
+
+def test_a_missing_pm25_is_reported_not_passed():
+    """Past the air-quality horizon PM2.5 is absent, and a skipped reading used to
+    leave "Every reading in that window sits inside the comfortable band" on a
+    Delhi plan whose air nobody had measured."""
+    window = [{k: v for k, v in h.items() if k != "pm2_5"} for h in hours()]
+    result = assess_window(window, activity="outdoor")
+
+    assert result.verdict == "go", "a missing reading is not a caution"
+    assert any(r.code == "pm2_5_not_assessed" for r in result.reasons)
+    clear = next(r for r in result.reasons if r.code == "clear")
+    assert "available" in clear.detail
+
+
+def test_normals_do_not_carry_the_pm25_note():
+    """Climatology never has PM2.5, and its own note already says it is not a
+    forecast. Adding this one to every climatology day would be noise."""
+    window = [{k: v for k, v in h.items() if k != "pm2_5"} for h in hours()]
+    result = assess_window(window, activity="outdoor", data_source="climatology")
+
+    assert not any(r.code == "pm2_5_not_assessed" for r in result.reasons)

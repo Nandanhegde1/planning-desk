@@ -14,6 +14,12 @@ AIR_URL = open_meteo("https://air-quality-api.open-meteo.com/v1/air-quality")
 ARCHIVE_URL = open_meteo("https://archive-api.open-meteo.com/v1/archive")
 
 FORECAST_HORIZON_DAYS = 15
+# The air-quality forecast is far shorter. On 2026-10-05 its API refused any
+# end_date past 2026-10-11 with a 400, and inside that range PM2.5 stopped at
+# 2026-10-10T05:00. A request reaching past the limit lost PM2.5 for every day in
+# it, the near ones included, so requests stop here, a day short of where the
+# readings end in case the host's date and the API's differ.
+AIR_QUALITY_HORIZON_DAYS = 4
 
 HOURLY_VARS = [
     "temperature_2m",
@@ -158,6 +164,10 @@ async def air_quality_hours(
 ) -> dict[str, list[Any]]:
     """PM2.5 by hour, keyed by ISO timestamp. Empty if the service is down; air
     quality is a secondary signal and must not fail the request."""
+    last = date.today() + timedelta(days=AIR_QUALITY_HORIZON_DAYS)
+    if start > last:
+        return {}
+    end = min(end, last)
     try:
         payload = await get_json(
             AIR_URL,

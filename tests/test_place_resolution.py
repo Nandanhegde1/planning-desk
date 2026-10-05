@@ -300,6 +300,33 @@ async def test_losing_air_quality_does_not_lose_the_verdict(monkeypatch):
     assert daylight is not None
 
 
+@pytest.mark.asyncio
+async def test_air_quality_is_only_requested_inside_its_own_horizon(monkeypatch):
+    """The air-quality API refuses an end date more than six days out, and the
+    refusal took PM2.5 away from the near days in the same request too. A week of
+    better windows starting tomorrow was ranked with no air quality at all."""
+    from datetime import date, timedelta
+
+    sent = []
+
+    async def fake_get_json(url, params=None, **kwargs):
+        sent.append(params)
+        return {"hourly": {"time": [], "pm2_5": []}}
+
+    monkeypatch.setattr(weather, "get_json", fake_get_json)
+    today = date.today()
+
+    await weather.air_quality_hours(28.6, 77.2, today, today + timedelta(days=10))
+    assert sent[0]["end_date"] == (today + timedelta(days=4)).isoformat()
+
+    sent.clear()
+    later = await weather.air_quality_hours(
+        28.6, 77.2, today + timedelta(days=6), today + timedelta(days=8)
+    )
+    assert later == {}
+    assert sent == [], "nothing to ask for past the horizon"
+
+
 def test_the_prompt_says_what_to_do_with_other_matches():
     """The flag is only useful if the model is told to use it."""
     from app import agent

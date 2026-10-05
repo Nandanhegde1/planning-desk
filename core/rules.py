@@ -224,6 +224,26 @@ def assess_window(
             )
         )
 
+    # PM2.5 comes from a separate forecast that ends days before the weather one
+    # does, and a missing reading is skipped above. Unremarked, that read as a
+    # clean bill of air quality for a window nobody had measured. Normals never
+    # carry PM2.5, and their note already says they are not a forecast.
+    if (
+        data_source == "forecast"
+        and "pm2_5_ug_m3" in policy
+        and not any(h.get("pm2_5") is not None for h in hours)
+    ):
+        reasons.append(
+            Reason(
+                code="pm2_5_not_assessed",
+                severity="note",
+                detail=(
+                    "PM2.5 was not assessed. The air-quality forecast reaches only a few days "
+                    "ahead, and returned nothing for this window."
+                ),
+            )
+        )
+
     if any(r.severity == "blocker" for r in reasons):
         verdict: Verdict = "no_go"
     elif any(r.severity == "caution" for r in reasons):
@@ -234,7 +254,9 @@ def assess_window(
     if verdict == "go":
         reasons.append(
             Reason(
-                "clear", "note", "Every reading in that window sits inside the comfortable band."
+                "clear",
+                "note",
+                "Every reading available for that window sits inside the comfortable band.",
             )
         )
 
