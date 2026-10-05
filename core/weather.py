@@ -155,6 +155,9 @@ async def forecast_hours(
         "rows": _rows_from_hourly(payload.get("hourly", {})),
         "daylight": daylight,
         "timezone": payload.get("timezone"),
+        # Timestamps are local and carry no zone, so this is the only way to tell
+        # what time it is there now. The archive path already passed it through.
+        "utc_offset_seconds": payload.get("utc_offset_seconds"),
         "source": "open-meteo forecast",
     }
 

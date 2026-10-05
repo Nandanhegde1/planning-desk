@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import math
 import sys
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +35,11 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
     )
     return 2 * 6371.0 * math.asin(math.sqrt(a))
+
+
+def _now_utc() -> datetime:
+    """The current time, as a function so a test can stop the clock."""
+    return datetime.now(UTC)
 
 
 # How large another place of the same name must be, as a share of the one chosen,
@@ -259,11 +264,19 @@ async def suggest_better_windows(
     except FetchError as exc:
         return {"error": str(exc)}
 
+    # The time there now, on the same naive local clock as the forecast rows.
+    # Today was searched in full, so asked on a Monday evening about Tuesday, the
+    # best window offered was Monday 06:00. With no offset in the payload, UTC.
+    offset = timedelta(seconds=bundle.get("utc_offset_seconds") or 0)
+    now_there = (_now_utc() + offset).replace(tzinfo=None)
+
     candidates = []
     day = first
     while day <= last:
         for hour in range(6, 22 - duration_hours + 1):
             start = datetime.combine(day, datetime.min.time()).replace(hour=hour)
+            if start <= now_there:
+                continue
             end = start + timedelta(hours=duration_hours)
             window = weather.slice_window(rows, start, end)
             if len(window) < duration_hours:

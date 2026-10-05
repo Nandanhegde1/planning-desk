@@ -105,6 +105,61 @@ async def test_a_trip_length_is_refused_by_the_windows_tool():
     assert "check_travel_plan" in result["error"]
 
 
+@pytest.mark.asyncio
+async def test_a_window_that_has_already_started_is_never_offered(monkeypatch):
+    """Asked at 18:44 on a Monday about Tuesday, the best window offered was
+    Monday 06:00-08:00, which had ended twelve hours before. Today is the best
+    day in this forecast, so without the cutoff its morning would win."""
+    import importlib
+    from datetime import UTC, date, datetime, timedelta
+
+    feasibility = importlib.import_module("feasibility_server")
+    today = date.today()
+    # 18:44 in Bengaluru, which is UTC+05:30.
+    now_there = datetime.combine(today, datetime.min.time()).replace(hour=18, minute=44)
+    offset = 19800
+
+    async def bengaluru(place):
+        return {"name": "Bengaluru", "latitude": 12.97, "longitude": 77.59}
+
+    async def forecast(lat, lon, start, end):
+        rows, day = [], start
+        while day <= end:
+            rain = 5 if day == today else 50
+            rows += [
+                {
+                    "time": f"{day.isoformat()}T{h:02d}:00",
+                    "precip_probability": rain,
+                    "precipitation": 0.0,
+                    "apparent_temp": 26,
+                }
+                for h in range(24)
+            ]
+            day += timedelta(days=1)
+        return {"rows": rows, "daylight": {}, "utc_offset_seconds": offset}
+
+    async def no_air(*args):
+        return {}
+
+    monkeypatch.setattr(feasibility, "_resolve", bengaluru)
+    monkeypatch.setattr(feasibility.weather, "forecast_hours", forecast)
+    monkeypatch.setattr(feasibility.weather, "air_quality_hours", no_air)
+    monkeypatch.setattr(
+        feasibility,
+        "_now_utc",
+        lambda: (now_there - timedelta(seconds=offset)).replace(tzinfo=UTC),
+    )
+
+    result = await feasibility.suggest_better_windows(
+        "Bengaluru", (today + timedelta(days=1)).isoformat(), duration_hours=2
+    )
+
+    starts = [datetime.fromisoformat(w["window"]["from"]) for w in result["best_windows"]]
+    assert starts, "the evening of today and the days after are still open"
+    assert all(start > now_there for start in starts), result["best_windows"]
+    assert min(starts).date() == today, "today's evening is still offered"
+
+
 def test_the_prompt_no_longer_sends_trips_to_the_windows_tool():
     """Pins the prompt to what the tool can serve. A trip's dates are answered by
     check_travel_plan's day-by-day verdicts; only the place needs another tool."""
