@@ -66,6 +66,38 @@ def reach_km(nights: int) -> float:
     return 2500.0
 
 
+def lookup(place: str) -> dict[str, Any] | None:
+    """The catalogue entry a place name means, if it names one.
+
+    The geocoder ranks by population, which is wrong for several of this
+    catalogue's own destinations: "Manali" came back as a Chennai suburb in Tamil
+    Nadu, "Goa" as Genoa and "Leh" as Le Havre. A destination this catalogue
+    lists is taken from here instead.
+
+    Matched on the base name, without the qualifier in "Leh, Ladakh" or "Coorg
+    (Madikeri)". A qualifier in the request must agree with the entry, so "Manali,
+    Tamil Nadu" is left to the geocoder rather than sent to Himachal.
+    """
+    head, _, rest = (part.strip() for part in place.lower().partition(","))
+    for row in CATALOGUE:
+        name = row["name"].lower()
+        base = name.split("(")[0].split(",")[0].strip()
+        own = name[len(base) :].strip(" ,()")
+        if head not in (base, name):
+            continue
+        if rest and rest not in (own, row["region"].lower(), row["country"].lower()):
+            continue
+        return {
+            "name": row["name"],
+            "region": row["region"],
+            "country": row["country"],
+            "latitude": row["lat"],
+            "longitude": row["lon"],
+            "resolved_by": "catalogue",
+        }
+    return None
+
+
 def _band_for(low: int, high: int) -> str:
     midpoint = (low + high) / 2
     for name, (floor, ceiling) in BUDGET_BANDS.items():

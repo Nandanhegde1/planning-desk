@@ -37,21 +37,54 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return 2 * 6371.0 * math.asin(math.sqrt(a))
 
 
+# How large another place of the same name must be, as a share of the one chosen,
+# before it is worth naming. Manali in Himachal is 23% of the Manali in Tamil
+# Nadu; the Aurangabad in Bihar is 9% of the one in Maharashtra. Both from the
+# live geocoder on 2026-10-05.
+RIVAL_POPULATION_SHARE = 0.2
+
+
+def _other_matches(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Places sharing the chosen one's name that are big enough to be meant.
+
+    The geocoder ranks by population, so the first match is a guess. A flag, not
+    a stop: the verdict is still given, and the model can say which place it
+    assumed. A village of the same name, with no population on record, is not a
+    rival worth a question.
+    """
+    chosen = matches[0]
+    floor = (chosen.get("population") or 0) * RIVAL_POPULATION_SHARE
+    if not floor:
+        return []
+    return [
+        {"name": m.get("name"), "admin1": m.get("admin1"), "country": m.get("country")}
+        for m in matches[1:]
+        if (m.get("population") or 0) >= floor
+        and (m.get("admin1"), m.get("country")) != (chosen.get("admin1"), chosen.get("country"))
+    ]
+
+
 async def _resolve(place: str) -> dict[str, Any]:
     """Resolve a place, retrying against whatever encloses it.
 
     Weather is city-scale, so an unindexed venue falls back to its city rather
-    than failing. The response records which name was used.
+    than failing. The response records which name was used. A destination in the
+    catalogue is taken from there before the geocoder is asked.
     """
     attempts = [place]
     parts = [p.strip() for p in place.split(",") if p.strip()]
     attempts += [", ".join(parts[i:]) for i in range(1, len(parts))]
 
     for index, attempt in enumerate(attempts):
-        matches = await weather.geocode(attempt, count=5)
+        known = destinations.lookup(attempt)
+        matches = [known] if known else await weather.geocode(attempt, count=5)
         if matches:
             resolved = dict(matches[0])
             resolved["requested"] = place
+            # Only for a bare name. "Manali, Himachal Pradesh" already says which.
+            rivals = _other_matches(matches) if len(parts) == 1 else []
+            if rivals:
+                resolved["other_matches"] = rivals
             if index > 0:
                 resolved["note"] = (
                     f"{place!r} was not in either place index, so conditions are for "

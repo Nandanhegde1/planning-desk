@@ -766,6 +766,12 @@ function daylightBand(daylight, requested) {
   return wrap;
 }
 
+/* The state as well as the country. "Manali, India" could not tell the hill
+   station from the Chennai suburb it was once resolved to. A catalogue entry
+   carries a region instead of a state. */
+const placeLabel = loc => [loc?.name, loc?.admin1 || loc?.region, loc?.country]
+  .filter((part, i, all) => part && all.indexOf(part) === i).join(', ');
+
 function renderVerdict(result) {
   const a = result.assessment;
   const card = el('section', 'verdict');
@@ -775,7 +781,7 @@ function renderVerdict(result) {
   ruling.appendChild(el('span', 'score', `${a.score} / 100`));
   card.appendChild(ruling);
 
-  const where = [result.location?.name, result.location?.country].filter(Boolean).join(', ');
+  const where = placeLabel(result.location);
   const when = result.requested ? `${result.requested.date}, ${String(result.requested.start_hour).padStart(2, '0')}:00\u2013${String(result.requested.end_hour).padStart(2, '0')}:00` : '';
   card.appendChild(el('p', 'whereabouts', [where, when].filter(Boolean).join(' \u00b7 ') + (result.data_source === 'climatology' ? ' \u00b7 seasonal normals, not a forecast' : '')));
 
@@ -882,7 +888,7 @@ function renderFigures(result) {
 
 function renderPanel(result) {
   if (result?.assessment?.reasons) return renderVerdict(result);
-  if (Array.isArray(result?.days)) return titled('Day by day', renderDays(result));
+  if (Array.isArray(result?.days)) return titled(['Day by day', placeLabel(result.location)].filter(Boolean).join(' \u00b7 '), renderDays(result));
   if (Array.isArray(result?.best_windows)) return titled('Better windows', renderWindows(result));
   if (Array.isArray(result?.alternatives)) return titled('Somewhere else', renderPlaces(result.alternatives));
   if (Array.isArray(result?.results)) return titled('Shortlist', renderPlaces(result.results));
