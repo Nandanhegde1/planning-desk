@@ -135,7 +135,9 @@ body {
 @keyframes breathe { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
 .reply { font-size: 16px; }
-.reply p { margin: 0 0 14px; }
+/* pre-line keeps the single line breaks the model puts between alternatives,
+   which the prompt asks for one per line. Without it they ran together. */
+.reply p { margin: 0 0 14px; white-space: pre-line; }
 .reply p:last-child { margin-bottom: 0; }
 .reply code { font: 14px var(--mono); background: var(--veil); padding: 2px 5px; border-radius: 4px; }
 
@@ -346,6 +348,9 @@ body {
 /* ---- composer ---------------------------------------------------------- */
 .composer-shell { border-top: 1px solid var(--rule); padding: 18px 32px 26px; background: var(--paper); }
 .composer { max-width: var(--column); margin: 0 auto; display: flex; gap: 12px; align-items: flex-end; }
+.colophon { max-width: var(--column); margin: 12px auto 0; font: 400 13px/1.4 var(--sans); color: var(--faint); }
+.colophon a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.colophon a:hover { color: var(--iris); border-color: var(--iris); }
 textarea {
   flex: 1;
   font: 400 16px/1.55 var(--sans);
@@ -433,7 +438,9 @@ textarea:focus { outline: none; border-color: var(--iris); background: var(--pap
 <div class="composer-shell"><div class="composer">
   <textarea id="input" rows="1" placeholder="A match, a trip, or a rate" aria-label="Your question"></textarea>
   <button class="send" id="send">Ask</button>
-</div></div>
+</div>
+<p class="colophon"><a href="https://github.com/Nandanhegde1/planning-desk">Source code and design notes on GitHub</a></p>
+</div>
 
 <script>
 const log = document.getElementById('log');

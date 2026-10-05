@@ -4,6 +4,8 @@ A chat interface that answers questions about plans by calling real tools over
 MCP, and a second mode that pulls exchange-rate history and turns it into
 spreadsheets, documents and charts.
 
+Live at https://planning-desk.onrender.com
+
 Both assignments run on one codebase. They share the chat interface, the agent
 loop and the MCP host; they differ only in which MCP server the model reaches
 for.

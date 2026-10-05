@@ -383,6 +383,16 @@ def test_the_page_declares_no_third_party_origins(client):
         assert origin not in body
 
 
+def test_the_page_links_to_its_source_and_keeps_line_breaks(client):
+    """A visitor had no way from the demo to the code. And answers list their
+    alternatives one per line, which ran together into one line without
+    pre-line."""
+    body = client.get("/").text
+
+    assert 'href="https://github.com/Nandanhegde1/planning-desk"' in body
+    assert "white-space: pre-line" in body
+
+
 def test_the_page_persists_both_the_session_and_the_mode(client):
     """Regression: the session id was persisted but the mode was not, so a
     reload of a bare url resumed a currency conversation with the planning tool
