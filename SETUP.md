@@ -22,7 +22,7 @@ and streams the answer back. Inside it is the agent loop: it asks the model a
 question, and if the model says "I need the weather for Bengaluru", the server
 goes and gets it, hands the answer back to the model, and repeats until the
 model has enough to reply. That loop is the thing your assignment is really
-testing, and it is written by hand in `app/agent.py`.
+testing, and it lives in plain code, with no framework, in `app/agent.py`.
 
 **Three tool servers.** Small separate programs, one for weather and
 feasibility, one for exchange rates, one for destinations and web search. They

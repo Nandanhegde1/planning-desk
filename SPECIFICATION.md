@@ -48,9 +48,9 @@ MCP client ── stdio ──┬── feasibility server ── Open-Meteo for
 | The three MCP servers | `servers/` |
 | Interface | `app/web/index.html` |
 
-No orchestration framework is used. The loop is one hand-written function,
+No orchestration framework is used. The loop is one custom function,
 `run_turn` in `app/agent.py`, about 150 lines including the four ceilings and the
-event stream. Writing it by hand is the point of the exercise.
+event stream. Keeping it in plain code, with no framework, is the point of the exercise.
 
 ---
 

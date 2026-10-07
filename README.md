@@ -11,8 +11,8 @@ loop and the MCP host; they differ only in which MCP server the model reaches
 for.
 
 No orchestration framework is used. The agent loop is one function, `run_turn` in
-`app/agent.py`, about 230 lines including its four ceilings, and it was written by
-hand, which is the point of the exercise.
+`app/agent.py`, about 230 lines including its four ceilings. Keeping the loop in
+plain code, with no framework, is the point of the exercise.
 
 Other documents: `SPECIFICATION.md` walks every function with the implementation
 behind it, and is the one to read alongside a demo. `SETUP.md` is the slow install
@@ -189,8 +189,8 @@ three, lists their tools, calls them, and asserts the schemas survive the trip.
 Calling the Python functions directly would have been simpler and would have
 proved nothing.
 
-**The loop is hand-written, and Foundry Agent Service was considered and
-rejected.** Agent Service would manage the thread, the tool selection and the
+**The loop is custom code rather than a framework, and Foundry Agent Service was
+considered and rejected.** Agent Service would manage the thread, the tool selection and the
 loop, which is precisely the part under assessment; it expects MCP servers
 reachable on the public internet or inside the same virtual network, so these
 stdio servers would need deploying before anything worked; and its MCP support
